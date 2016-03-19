@@ -1,16 +1,50 @@
-#include<iostream>
-#include<vector>
-#include<sstream>
-#include<cstring>
-#include<cstdlib> 
+#include <iostream>
+#include <vector>
+#include <sstream>
+#include <cstring>
+#include <cstdlib>
+#include <map>
+#include <set> 
+#include <fstream>
 
 using namespace std;
+ 
+void compSetup() {
+	
+	ifstream origFile("original.txt");
+	
+	map<string,int > origMap; 	// check # of duplicates
+	map<string,int>::iterator it;	// checking duplicate
+	set<string> set; //used for geting duplicate orders
+	string lineTmp;
+	while(getline(origFile,lineTmp)){
+		it = origMap.find(lineTmp);
+		if (it != origMap.end()) {
+			it->second++;
+		}
+		else {
+			origMap.insert (pair<string,int>(lineTmp,1) );
+		}
+    }
+	 /* write to file */
+	ofstream outFile("cout.txt");
+	// streambuf *coutbuffer = cout.rdbuf();
+	// cout.rdbuf(outFile.rdbuf());
+	 
+	
+}
+
+void  depreSetup() {
+	
+}
 
 void depression() {
+	depreSetup();
 	cout << "depressing " << endl;
 }
 
 void compression() {
+	compSetup();
 	cout << "compressing " << endl;
 }
 
