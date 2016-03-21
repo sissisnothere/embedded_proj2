@@ -19,6 +19,8 @@ vector<string> fileKey;
 map<string,int > dupMap; 	// check # of duplicates
 map<string,int>::iterator it;	// checking duplicate
 vector<pair<string, int > > sortMap;
+vector<pair<string, int > > sortMap1;
+
 map<string,int > dictionary;	// int is for index value in the dictionary
 int choice = 0; // 1.RLE 2.bitmask 3. 1 bit mismatch, 4. 2consecutive mismatch 5. 2bit mismatch 6. DirectMatch 7. Original
 string lastLine;
@@ -42,7 +44,7 @@ void compSetup() {
 	string line;
  	set<int, classcomp> dupSet; //used for geting duplicate orders
  	set<int>::iterator setIt;
-	
+	//vector<string,int>::iterator itVet;
 	
 	/* read line by line, and store in the vector for future use, also store number of duplicate line in map, value is duplicate */ 
 	while(getline(origFile,line)){
@@ -50,56 +52,60 @@ void compSetup() {
 		fileKey.push_back(line);
 		
 		it = dupMap.find(line);
-		//cout<< " key " << it->first << endl; 
-		//cout<< " value " << it->second << endl; 
+		for(int i = 0; i < sortMap1.size(); i++) {
+			if(sortMap1[i].first.compare(line) == 0) {
+				sortMap1[i].second++;
+				break;
+			}
+		}
+ 
 		if (it != dupMap.end()) {
 			it->second++;
 		//	cout << "increasing value" << endl;
 		}
 		else {
 			dupMap.insert (pair<string,int>(line,1) );
+			sortMap1.push_back(pair<string,int>(line,1));
 		//	cout << "create a new entry " << endl;
 		}
 	}
 	
 	for(it = dupMap.begin(); it != dupMap.end(); it++)
 	{
-		//cout << "key: " << it->first << endl;
-		//cout << "value " << it->second << endl; 
 		dupSet.insert(it->second); 	//store repeating value in order
 	} 
 	
 	/* create 8 entries dictionary*/
 	
 	int dictSize = 0;
+
 	
 	for(setIt=dupSet.begin(); setIt!=dupSet.end() ; ++setIt)
 	{
-		for(it = dupMap.begin(); it != dupMap.end() && dictSize <8; it++)
-		{		
-			//cout << *setIt << " is " << it->second << endl;
-			if(it->second == *setIt) {
-				sortMap.push_back(pair<string, int>(it->first,dictSize));
-				dictionary.insert(pair<string,int >(it->first,dictSize));
-				cout << "pushing " << it->first << endl;
-				dictSize++;
-			}	
-		} 
+		// for(it = dupMap.begin(); it != dupMap.end() && dictSize <8; it++)
+// 		{
+// 			//cout << *setIt << " is " << it->second << endl;
+// 			if(it->second == *setIt) {
+// 				sortMap.push_back(pair<string, int>(it->first,dictSize));
+// 				dictionary.insert(pair<string,int >(it->first,dictSize));
+// 				cout << "pushing " << it->first << endl;
+// 				dictSize++;
+// 			}
+// 		}
+		for(int i = 0; i < sortMap1.size()&& dictSize <8;i++) { 
+			if(sortMap1[i].second == *setIt) {
+					sortMap.push_back(pair<string, int>(sortMap1[i].first,dictSize));
+					dictionary.insert(pair<string,int >(sortMap1[i].first,dictSize));
+					//cout << "pushing " << it->first << endl;
+					dictSize++;
+			}
+		}
+
 		if(dictSize == 8)
 			break;
-		
+
 	}
 	
-// 	for(int i=0;i<dictSize;i++) {
-// 		cout << "sortMap " << sortMap.at(i).first << " and " << i << endl;
-// 		//dictionary.insert(pair<string,int >(mapForSort.at(i).first,i));
-// 	}
-// //
-// 	for(auto iterator = dictionary.begin() ; iterator != dictionary.end() ; ++iterator )
-// 	{
-// 		cout << iterator->first<< endl;
-// 		cout << iterator->second << endl;
-// 	}
 	
 	 /* write to file */
 	ofstream outFile("cout.txt");
@@ -182,7 +188,7 @@ string bitMistake(string compareStr, string orgiStr ) {
 		position1 = mistakes.at(0).second;
 		bool find = false;
 		//int lastPosition = position1;
-		for(int i = mistakes.at(0).second; i < mistakes.at(size-1).second; i++)
+		for(int i = mistakes.at(0).second; i < mistakes.at(0).second+4; i++)
 		{
 			for(int j = 0; j < size; j++) {
 				if(mistakes.at(j).second == i) {
@@ -198,7 +204,7 @@ string bitMistake(string compareStr, string orgiStr ) {
 			else
 				tempMask += "0";
 		}
-
+		cout << "--------------tempMask is " << tempMask << endl;
 		bitMask = tempMask;
 		choice = 1;
 		
@@ -225,11 +231,11 @@ string bitMistake(string compareStr, string orgiStr ) {
 			temp[position2] = '0';
 
 		choice = 4;
-		cout << "temp str length " << temp.length() << endl;
-		cout << "orgi str length " << orgiStr.length() << endl;
-		if(temp.compare(orgiStr) == 0)
-			cout << "temp and orgiStr are the same! " << endl;
-		
+		// cout << "temp str length " << temp.length() << endl;
+// 		cout << "orgi str length " << orgiStr.length() << endl;
+// 		if(temp.compare(orgiStr) == 0)
+// 			cout << "temp and orgiStr are the same! " << endl;
+//
 	}
 	
 	return temp;	
@@ -293,22 +299,25 @@ void compression() {
 											//format = bitset<2>(RLEindex).to_string();
 											break;
 			case 1: 	/*bistmask*/		if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												cout << "RLEindex " << bitset<2>(RLEindex).to_string() << endl;
+												format = bitset<2>(RLEindex).to_string();
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "001";
 											biPos1 = bitset<5>(position1).to_string();
 											format = bitset<3>(it2->second).to_string();
 											cout << "position1 " << biPos1 << endl;
-											cout << "format " << format << endl;
+											
 											cout << "bitmask " << bitMask << endl;
+											cout << "format " << format << endl;
 									
 											ss<< pre << biPos1 << bitMask << format;
 											break;
 			case 2: 	/*1 bit*/			if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												cout << "RLEindex " << bitset<2>(RLEindex).to_string() << endl;
+												format = bitset<2>(RLEindex).to_string();
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "010";
@@ -319,8 +328,9 @@ void compression() {
 											ss<< pre << biPos1 << format;
 											break;
 			case 3: 	/*2bit consecutive*/if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												cout << "RLEindex " << bitset<2>(RLEindex).to_string() << endl;
+												format = bitset<2>(RLEindex).to_string();
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "011";
@@ -331,8 +341,9 @@ void compression() {
 											ss<< pre << biPos1 << format;
 											break;
 			case 4: 	/*2bit anywhere*/	if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												cout << "RLEindex " << bitset<2>(RLEindex).to_string() << endl;
+												format = bitset<2>(RLEindex).to_string();
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "100";
@@ -345,8 +356,9 @@ void compression() {
 											ss<< pre << biPos1 << biPos2 << format;
 											break;
 			case 5: 	/*Direct Match*/	if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												cout << "RLEindex " << bitset<2>(RLEindex).to_string() << endl;
+												format = bitset<2>(RLEindex).to_string();
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "101";
@@ -356,8 +368,10 @@ void compression() {
 											ss<< pre << format;
 											break;
 			case 6: 	/*original*/		if(pre.compare("000") == 0) {
-												cout << "RLEindex " << RLEindex << endl;
-												ss<< pre << RLEindex;
+												
+												format = bitset<2>(RLEindex).to_string();
+												cout << "RLEindex " << format << endl;
+												ss<< pre << format;
 											}
 											RLEindex = -1;
 											pre = "111";
