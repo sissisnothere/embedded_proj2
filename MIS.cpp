@@ -41,6 +41,7 @@ string line;
 /* for decompression */
 string compBody;
 string dictComb;
+vector<string> dictVec;
 
 void compSetup() {
 	
@@ -376,19 +377,32 @@ void compression() {
 void  depreSetup() {
 	ifstream origFile("compressed.txt");
 	//stringstream origSS;
+	string tempLine;
 	stringstream ss;
 	
 	while(getline(origFile,line)){
 		line.erase(line.find_last_not_of("\n\r") + 1);
 		ss << line;
 	}
+	
+	ss>>tempLine;
+	
 	/* find dictionary */
-	size_t position = line.find("xxxx");
-	compBody = line.substr(0,position);
-	dictComb = line.substr(position + 4);
+	size_t position = tempLine.find("xxxx");
+	compBody = tempLine.substr(0,position);
+	dictComb = tempLine.substr(position + 4);
 	
 	origFile.close();
 	
+	/* generate dictionary */
+	while(true) {
+		string temp;
+		temp = dictComb.substr(0,32);
+		dictComb = dictComb.substr(32, dictComb.length());
+		dictVec.push_back(temp);
+		cout << "push: " << temp << endl;
+		if (dictComb.length() == 0) break;
+	}
 }
 
 void depression() {
@@ -400,128 +414,138 @@ void depression() {
 	string dicIndex;
 	string origStr, RLE, mask;
 	string temp = "";
-	stringstream ss;
+	//stringstream ss;
+	
 	/* get line to vector */
 	while(true) {
-		int rest = strlen(compBody.c_str());
+		int rest = compBody.length();
 		if(rest < 3)
 			break;
 		else {
 			pre = compBody.substr(0,3);
-			compBody = compBody.substr(3,strlen(compBody.c_str()));	
-			if(pre.compare("000") != 0) {   /* RLE */
+			compBody = compBody.substr(3,compBody.length());	
+			if(pre.compare("000") == 0) {   /* RLE */
 				preIndex = strlen(compBody.c_str());
 				if(preIndex < 2) break;
 				else {
 					RLE = compBody.substr(0,2);
-					compBody = compBody.substr(2,strlen(compBody.c_str()));
+					compBody = compBody.substr(2, compBody.length());
 					temp = pre + RLE;
-					cout << "temp is " << temp << endl;
-					ss<<temp;
-					
-					//ss>>temp;
+					cout << "000 temp is " << temp << endl;
+					//ss<<temp;
+
 					fileKey.push_back(temp);
 				}
 			}
-			else if(pre.compare("001") != 0) { /* bitmask */
-				preIndex = strlen(compBody.c_str());
+			else if(pre.compare("001") == 0) { /* bitmask */
+				preIndex = compBody.length();
 				if(preIndex < 3) break;
 				else {
-					pos1Index = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					pos1Index = compBody.substr(0,5);
+					compBody = compBody.substr(5, compBody.length());
 					int maskInd = strlen(compBody.c_str());
 					if(maskInd < 4) break;
 					else {
 						mask =  compBody.substr(0,4);
-						compBody = compBody.substr(3,strlen(compBody.c_str()));
-						int dicInd = strlen(compBody.c_str());
+						compBody = compBody.substr(4,compBody.length());
+						int dicInd = compBody.length();
 						if(dicInd < 3) break;
 						else {
 							dicIndex = compBody.substr(0,3);
-							compBody = compBody.substr(3,strlen(compBody.c_str()));
+							compBody = compBody.substr(3,compBody.length());
 							temp = pre + pos1Index + mask + dicIndex;
-							cout << "temp is " << temp << endl;
-							ss<<temp;
+							cout << "001 temp is " << temp << endl;
+							//ss<<temp;
 							fileKey.push_back(temp);
 						}
 					}
 				}
 			}
-			else if(pre.compare("010") != 0) { /* 1 bit mistake */
-				preIndex = strlen(compBody.c_str());
-				if(preIndex < 8) break;
-				else {
-					pos1Index = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
-					dicIndex = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
-					
-					temp = pre + pos1Index + dicIndex;
-					cout << "temp is " << temp << endl;
-					ss<<temp;
-					fileKey.push_back(temp);
-					
-				}
-			}
-			else if(pre.compare("011") != 0) { /* 2bit consecutive */
-				preIndex = strlen(compBody.c_str());
-				if(preIndex < 8) break;
-				else {
-					pos1Index = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
-					dicIndex = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
-					
-					temp = pre + pos1Index + dicIndex;
-					cout << "temp is " << temp << endl;
-					ss<<temp;
-					fileKey.push_back(temp);
-					
-				}
-			}
-			else if(pre.compare("100") != 0) { /* 2bit anywhere */
-				preIndex = strlen(compBody.c_str());
-				if(preIndex < 13) break;
+			else if(pre.compare("010") == 0) { /* 1 bit mistake */
+				preIndex = compBody.length();
+				if(preIndex < 5) break;
 				else {
 					pos1Index = compBody.substr(0,5);
-					compBody = compBody.substr(5,strlen(compBody.c_str()));
-					pos2Index = compBody.substr(0,5);
-					compBody = compBody.substr(5,strlen(compBody.c_str()));
-					dicIndex = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					compBody = compBody.substr(5, compBody.length());
+					int dicI = compBody.length();
+					if(dicI < 3) break;
+					else {
+						dicIndex = compBody.substr(0,3);
+						compBody = compBody.substr(3, compBody.length());
 					
-					temp = pre + pos1Index + pos1Index +  dicIndex;
-					cout << "temp is " << temp << endl;
-					ss<<temp;
-					fileKey.push_back(temp);
-					
+						temp = pre + pos1Index + dicIndex;
+						cout << "010 temp is " << temp << endl;
+						//ss<<temp;
+						fileKey.push_back(temp);	
+					}
 				}
 			}
-			else if(pre.compare("101") != 0) { /* dictionary */
-				preIndex = strlen(compBody.c_str());
+			else if(pre.compare("011") == 0) { /* 2bit consecutive */
+				preIndex = compBody.length();
+				if(preIndex < 5) break;
+				else {
+					pos1Index = compBody.substr(0,5);
+					compBody = compBody.substr(5, compBody.length());
+					int dicI = compBody.length();
+					if(dicI < 3) break;
+					else {
+						dicIndex = compBody.substr(0,3);
+						compBody = compBody.substr(3, compBody.length());
+					
+						temp = pre + pos1Index + dicIndex;
+						cout << "011 temp is " << temp << endl;
+						//ss<<temp;
+						fileKey.push_back(temp);	
+					}	
+				}
+			}
+			else if(pre.compare("100") == 0) { /* 2bit anywhere */
+				preIndex = compBody.length();
+				if(preIndex < 5) break;
+				else {
+					pos1Index = compBody.substr(0,5);
+					compBody = compBody.substr(5, compBody.length());
+					int pos2 = compBody.length();
+					if(pos2 < 5) break;
+					else {
+						pos2Index = compBody.substr(0,5);
+						compBody = compBody.substr(5, compBody.length());
+						int dicI = compBody.length();
+						if(dicI < 3) break;
+						else {
+							dicIndex = compBody.substr(0,3);
+							compBody = compBody.substr(3, compBody.length());
+					
+							temp = pre + pos1Index + pos2Index +  dicIndex;
+							cout << "100 temp is " << temp << endl;
+							//ss<<temp;
+							fileKey.push_back(temp);
+					
+						}	
+					}	
+				}
+			}
+			else if(pre.compare("101") == 0) { /* dictionary */
+				preIndex = compBody.length();
 				if(preIndex < 3) break;
 				else {
 					dicIndex = compBody.substr(0,3);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					compBody = compBody.substr(3, compBody.length());
 					temp = pre + dicIndex;
-					cout << "temp is " << temp << endl;
-					ss<<temp;
-					
-					//ss>>temp;
+					cout << "101 temp is " << temp << endl;
+					//ss<<temp;
 					fileKey.push_back(temp);
 				}
 			}
-			else if(pre.compare("111") != 0) { /* original */
-				preIndex = strlen(compBody.c_str());
+			else if(pre.compare("111") == 0) { /* original */
+				preIndex = compBody.length();
 				if(preIndex < 32) break;
 				else {
 					origStr = compBody.substr(0,32);
-					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					compBody = compBody.substr(32,compBody.length());
 					temp = pre + origStr;
-					cout << "temp is " << origStr << endl;
-					ss<<temp;
-					
-					//ss>>temp;
+					cout << "111 temp is " << origStr << endl;
+					//ss<<temp;
 					fileKey.push_back(temp);
 				}
 			}
@@ -531,6 +555,33 @@ void depression() {
 	}
 	
 	/* generate output */
+	// for(int i=0; i < fileKey.size(); i++) {
+// 		if (fileKey.at(i).substr(0,3)=="101") {
+// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(2,5)).to_ulong());
+// 			cout<<uncomp<<endl;
+// 		}
+// 		else if(origVec.at(i).substr(0,3)=="001") {
+// 			int loca=bitset<5>(origVec.at(i).substr(2,7)).to_ulong();
+// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(7,10)).to_ulong());
+// 			string finalUnComp=flip_consec(uncomp,loca);
+// 			cout<<finalUnComp<<endl;
+// 		}
+// 		else if(fileKey.at(i).substr(0,3)=="010") {
+// 			int loca1=bitset<5>(fileKey.at(i).substr(2,7)).to_ulong();
+// 			int loca2=bitset<5>(fileKey.at(i).substr(7,12)).to_ulong();
+// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(12,15)).to_ulong());
+// 			string finalUnComp=flip_any2(uncomp,loca1,loca2);
+// 			cout<<finalUnComp<<endl;
+// 		}
+// 		else if(fileKey.at(i).substr(0,3)=="101") {
+// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(2,5)).to_ulong());
+// 			cout<<uncomp<<endl;
+// 		}
+// 		else if(fileKey.at(i).substr(0,3)=="111") {
+// 			cout<<fileKey.at(i).substr(2,34)<<endl;
+// 		}
+// 	}
+	
 }
 
 int main(int argc, char* argv[]) { 
@@ -552,15 +603,15 @@ int main(int argc, char* argv[]) {
  			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else if(atoi(argv[1]) == 2) {
-			ofstream outFile("dout.txt");
-			streambuf *coutbuf = cout.rdbuf();
-			cout.rdbuf(outFile.rdbuf());
+			// ofstream outFile("dout.txt");
+	// 		streambuf *coutbuf = cout.rdbuf();
+	// 		cout.rdbuf(outFile.rdbuf());
 			
 			depreSetup();
 			depression();
 			
-			outFile.close();
- 			cout.rdbuf(coutbuf); //reset to standard output again
+			// outFile.close();
+	//  			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else {
 			cout << "invild argement "<< atoi(argv[1]) <<endl;
