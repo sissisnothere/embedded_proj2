@@ -410,17 +410,14 @@ void  depreSetup() {
 
 string depreHelper(int depressType) {
 	string temp = depressDict;
-	int repeatRLE = RLEindex, intMask = 4;
+	int repeatRLE = RLEindex, intMask = 0;
 	string tempMask = mask;
 	int tempPos1 = position1;
 	int tempPos2 = position2;
 
 	
 	switch(depressType) {
-		case 0: 	/* RLE */ 				//cout << "RLE is" << repeatRLE << endl;
-											//repeatRLE = stoi(RLE,nullptr,2);
-											//cout << "RLE is " << repeatRLE << endl;
-											do {
+		case 0: 	/* RLE */ 				do {
 												temp = lastLine;
 												cout<< temp <<endl;
 												repeatRLE--;
@@ -428,15 +425,16 @@ string depreHelper(int depressType) {
 											break;
 		case 1: 	/* bitmask */			//cout << "bitmask" << endl;
 											do {
-												if(mask[tempPos1] == '1') {
-													if(temp[intMask] == '1')
-														temp[intMask] = '0';
+												if(mask[intMask] == '1') {
+													
+													if(temp[tempPos1] == '1')
+														temp[tempPos1] = '0';
 													else
-														temp[intMask] = '1';
+														temp[tempPos1] = '1';
 												}
-												intMask--;
+												intMask++;
 												tempPos1++;
-											}while(intMask >= 0);
+											}while(intMask < 4);
 											
 											break;
 		case 2: 	/* 1 bit mistake */		//cout << "1 bit mistake" << endl;
@@ -622,8 +620,10 @@ void depression() {
 		}
 		else if (fileKey.at(i).substr(0,3).compare("001") == 0 ) { 	/* bitmask */
 			position1 = bitset<5>(fileKey.at(i).substr(3,8)).to_ulong();
-			mask = bitset<4>(fileKey.at(i).substr(3,7)).to_ulong();
-			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(7,10)).to_ulong());
+			mask = "";
+			mask = fileKey.at(i).substr(8,4);
+			//cout << "mask ... " << mask << endl;
+			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(12,15)).to_ulong());
 			compress = depreHelper(1);
 			cout<< compress <<endl;
 		}
@@ -684,12 +684,12 @@ int main(int argc, char* argv[]) {
 			ofstream outFile("dout.txt");
 			streambuf *coutbuf = cout.rdbuf();
 			cout.rdbuf(outFile.rdbuf());
-			
+
 			depreSetup();
 			depression();
-			
+
 			outFile.close();
-	 		cout.rdbuf(coutbuf); //reset to standard output again
+	 			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else {
 			cout << "invild argement "<< atoi(argv[1]) <<endl;
@@ -698,6 +698,3 @@ int main(int argc, char* argv[]) {
 	
 	return 0;
 }
-	
-	
-	
