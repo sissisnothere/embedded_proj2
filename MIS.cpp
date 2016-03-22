@@ -42,6 +42,9 @@ string line;
 string compBody;
 string dictComb;
 vector<string> dictVec;
+string depressDict;
+string lastStr;
+string origStr, RLE, mask;
 
 void compSetup() {
 	
@@ -400,9 +403,70 @@ void  depreSetup() {
 		temp = dictComb.substr(0,32);
 		dictComb = dictComb.substr(32, dictComb.length());
 		dictVec.push_back(temp);
-		cout << "push: " << temp << endl;
+		//cout << "push: " << temp << endl;
 		if (dictComb.length() == 0) break;
 	}
+}
+
+string depreHelper(int depressType) {
+	string temp = depressDict;
+	int repeatRLE = RLEindex, intMask = 4;
+	string tempMask = mask;
+	int tempPos1 = position1;
+	int tempPos2 = position2;
+
+	
+	switch(depressType) {
+		case 0: 	/* RLE */ 				//cout << "RLE is" << repeatRLE << endl;
+											//repeatRLE = stoi(RLE,nullptr,2);
+											//cout << "RLE is " << repeatRLE << endl;
+											do {
+												temp = lastLine;
+												cout<< temp <<endl;
+												repeatRLE--;
+											}while(repeatRLE >= 0);
+											break;
+		case 1: 	/* bitmask */			//cout << "bitmask" << endl;
+											do {
+												if(mask[tempPos1] == '1') {
+													if(temp[intMask] == '1')
+														temp[intMask] = '0';
+													else
+														temp[intMask] = '1';
+												}
+												intMask--;
+												tempPos1++;
+											}while(intMask >= 0);
+											
+											break;
+		case 2: 	/* 1 bit mistake */		//cout << "1 bit mistake" << endl;
+											if(temp[tempPos1] == '1')
+												temp[tempPos1] = '0';
+											else
+												temp[tempPos1] = '1';
+											break;
+		case 3: 	/* 2 bit consecutive */	//cout << "2 bit consecutive" << endl;
+											if(temp[tempPos1] == '1')
+												temp[tempPos1] = '0';
+											else
+												temp[tempPos1] = '1';
+											if(temp[tempPos1+1] == '1')
+												temp[tempPos1+1] = '0';
+											else
+												temp[tempPos1+1] = '1';
+											break;
+		case 4: 	/* 2 bit anywhere */	//cout << "2 bit anywhere" << endl;
+											if(temp[tempPos1] == '1')
+												temp[tempPos1] = '0';
+											else
+												temp[tempPos1] = '1';
+											if(temp[tempPos2] == '1')
+												temp[tempPos2] = '0';
+											else
+												temp[tempPos2] = '1';
+											break;
+	}
+	return temp;
 }
 
 void depression() {
@@ -412,8 +476,9 @@ void depression() {
 	string pos1Index;
 	string pos2Index;
 	string dicIndex;
-	string origStr, RLE, mask;
+
 	string temp = "";
+	string compress;
 	//stringstream ss;
 	
 	/* get line to vector */
@@ -431,9 +496,7 @@ void depression() {
 					RLE = compBody.substr(0,2);
 					compBody = compBody.substr(2, compBody.length());
 					temp = pre + RLE;
-					cout << "000 temp is " << temp << endl;
-					//ss<<temp;
-
+					//cout << "000 temp is " << temp << endl;
 					fileKey.push_back(temp);
 				}
 			}
@@ -454,8 +517,7 @@ void depression() {
 							dicIndex = compBody.substr(0,3);
 							compBody = compBody.substr(3,compBody.length());
 							temp = pre + pos1Index + mask + dicIndex;
-							cout << "001 temp is " << temp << endl;
-							//ss<<temp;
+						//	cout << "001 temp is " << temp << endl;
 							fileKey.push_back(temp);
 						}
 					}
@@ -474,8 +536,7 @@ void depression() {
 						compBody = compBody.substr(3, compBody.length());
 					
 						temp = pre + pos1Index + dicIndex;
-						cout << "010 temp is " << temp << endl;
-						//ss<<temp;
+						//cout << "010 temp is " << temp << endl;
 						fileKey.push_back(temp);	
 					}
 				}
@@ -493,8 +554,7 @@ void depression() {
 						compBody = compBody.substr(3, compBody.length());
 					
 						temp = pre + pos1Index + dicIndex;
-						cout << "011 temp is " << temp << endl;
-						//ss<<temp;
+						//cout << "011 temp is " << temp << endl;
 						fileKey.push_back(temp);	
 					}	
 				}
@@ -517,8 +577,7 @@ void depression() {
 							compBody = compBody.substr(3, compBody.length());
 					
 							temp = pre + pos1Index + pos2Index +  dicIndex;
-							cout << "100 temp is " << temp << endl;
-							//ss<<temp;
+							//cout << "100 temp is " << temp << endl;
 							fileKey.push_back(temp);
 					
 						}	
@@ -532,8 +591,7 @@ void depression() {
 					dicIndex = compBody.substr(0,3);
 					compBody = compBody.substr(3, compBody.length());
 					temp = pre + dicIndex;
-					cout << "101 temp is " << temp << endl;
-					//ss<<temp;
+					//cout << "101 temp is " << temp << endl;
 					fileKey.push_back(temp);
 				}
 			}
@@ -544,8 +602,7 @@ void depression() {
 					origStr = compBody.substr(0,32);
 					compBody = compBody.substr(32,compBody.length());
 					temp = pre + origStr;
-					cout << "111 temp is " << origStr << endl;
-					//ss<<temp;
+					//cout << "111 temp is " << origStr << endl;
 					fileKey.push_back(temp);
 				}
 			}
@@ -555,32 +612,53 @@ void depression() {
 	}
 	
 	/* generate output */
-	// for(int i=0; i < fileKey.size(); i++) {
-// 		if (fileKey.at(i).substr(0,3)=="101") {
-// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(2,5)).to_ulong());
-// 			cout<<uncomp<<endl;
-// 		}
-// 		else if(origVec.at(i).substr(0,3)=="001") {
-// 			int loca=bitset<5>(origVec.at(i).substr(2,7)).to_ulong();
-// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(7,10)).to_ulong());
-// 			string finalUnComp=flip_consec(uncomp,loca);
-// 			cout<<finalUnComp<<endl;
-// 		}
-// 		else if(fileKey.at(i).substr(0,3)=="010") {
-// 			int loca1=bitset<5>(fileKey.at(i).substr(2,7)).to_ulong();
-// 			int loca2=bitset<5>(fileKey.at(i).substr(7,12)).to_ulong();
-// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(12,15)).to_ulong());
-// 			string finalUnComp=flip_any2(uncomp,loca1,loca2);
-// 			cout<<finalUnComp<<endl;
-// 		}
-// 		else if(fileKey.at(i).substr(0,3)=="101") {
-// 			string uncomp=dictVec.at(bitset<3>(fileKey.at(i).substr(2,5)).to_ulong());
-// 			cout<<uncomp<<endl;
-// 		}
-// 		else if(fileKey.at(i).substr(0,3)=="111") {
-// 			cout<<fileKey.at(i).substr(2,34)<<endl;
-// 		}
-// 	}
+	for(int i=0; i < fileKey.size(); i++) {
+		if (fileKey.at(i).substr(0,3).compare("000") == 0 ) { 		/* RLE */
+			RLEindex = bitset<2>(fileKey.at(i).substr(3,5)).to_ulong();
+			//cout << "RLE is ..." << RLEindex << endl;
+			compress = depreHelper(0);
+			
+			//cout<< compress <<endl;
+		}
+		else if (fileKey.at(i).substr(0,3).compare("001") == 0 ) { 	/* bitmask */
+			position1 = bitset<5>(fileKey.at(i).substr(3,8)).to_ulong();
+			mask = bitset<4>(fileKey.at(i).substr(3,7)).to_ulong();
+			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(7,10)).to_ulong());
+			compress = depreHelper(1);
+			cout<< compress <<endl;
+		}
+		else if (fileKey.at(i).substr(0,3).compare("010") == 0 ) {	/* 1 bit mistake */
+			position1 = bitset<5>(fileKey.at(i).substr(3,8)).to_ulong();
+			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(8,11)).to_ulong());
+			compress = depreHelper(2);
+			//cout << "position1 is ..." << position1 << endl;
+			cout<< compress <<endl;
+		}
+		else if(fileKey.at(i).substr(0,3).compare("011") == 0 ) {	/* 2 bit consecutive */
+			position1 = bitset<5>(fileKey.at(i).substr(3,8)).to_ulong();
+			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(8,11)).to_ulong());
+			compress = depreHelper(3);
+			cout<< compress <<endl;
+		}
+		else if (fileKey.at(i).substr(0,3).compare("100") == 0 ){	/* 2 bit anywhere */
+			position1 = bitset<5>(fileKey.at(i).substr(3,8)).to_ulong();
+			position2 = bitset<5>(fileKey.at(i).substr(8,13)).to_ulong();
+			depressDict = dictVec.at(bitset<3>(fileKey.at(i).substr(13,16)).to_ulong());
+			compress = depreHelper(4);
+			cout<< compress <<endl;
+		}
+		else if (fileKey.at(i).substr(0,3).compare("101") == 0 ) {	/* direct */
+			compress = dictVec.at(bitset<3>(fileKey.at(i).substr(3,6)).to_ulong());
+			cout<< compress <<endl;
+		}
+		else if (fileKey.at(i).substr(0,3).compare("111") == 0 ) { /* original */
+			compress = fileKey.at(i).substr(3,35);
+			cout << compress << endl;
+		}
+		else break;
+		
+		lastLine = compress;
+	}
 	
 }
 
@@ -603,15 +681,15 @@ int main(int argc, char* argv[]) {
  			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else if(atoi(argv[1]) == 2) {
-			// ofstream outFile("dout.txt");
-	// 		streambuf *coutbuf = cout.rdbuf();
-	// 		cout.rdbuf(outFile.rdbuf());
+			ofstream outFile("dout.txt");
+			streambuf *coutbuf = cout.rdbuf();
+			cout.rdbuf(outFile.rdbuf());
 			
 			depreSetup();
 			depression();
 			
-			// outFile.close();
-	//  			cout.rdbuf(coutbuf); //reset to standard output again
+			outFile.close();
+	 		cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else {
 			cout << "invild argement "<< atoi(argv[1]) <<endl;
