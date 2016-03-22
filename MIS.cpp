@@ -22,7 +22,7 @@ vector<pair<string, int > > sortMap;
 vector<pair<string, int > > sortMap1;
 
 map<string,int > dictionary;	// int is for index value in the dictionary
-int choice = 0; // 1.RLE 2.bitmask 3. 1 bit mismatch, 4. 2consecutive mismatch 5. 2bit mismatch 6. DirectMatch 7. Original
+int choice = -1; // 0.RLE 1.bitmask 2. 1 bit mismatch, 3. 2consecutive mismatch 4. 2bit mismatch 5. DirectMatch 6. Original
 string lastLine;
 
 string pre;
@@ -36,15 +36,19 @@ string biPos2 = "";
 int RLEindex = -1;
 string lastPre = "";
 string bitMask = "";
+string line;
+
+/* for decompression */
+string compBody;
+string dictComb;
 
 void compSetup() {
 	
 	ifstream origFile("original.txt");
 	
-	string line;
+	
  	set<int, classcomp> dupSet; //used for geting duplicate orders
  	set<int>::iterator setIt;
-	//vector<string,int>::iterator itVet;
 	
 	/* read line by line, and store in the vector for future use, also store number of duplicate line in map, value is duplicate */ 
 	while(getline(origFile,line)){
@@ -82,16 +86,6 @@ void compSetup() {
 	
 	for(setIt=dupSet.begin(); setIt!=dupSet.end() ; ++setIt)
 	{
-		// for(it = dupMap.begin(); it != dupMap.end() && dictSize <8; it++)
-// 		{
-// 			//cout << *setIt << " is " << it->second << endl;
-// 			if(it->second == *setIt) {
-// 				sortMap.push_back(pair<string, int>(it->first,dictSize));
-// 				dictionary.insert(pair<string,int >(it->first,dictSize));
-// 				cout << "pushing " << it->first << endl;
-// 				dictSize++;
-// 			}
-// 		}
 		for(int i = 0; i < sortMap1.size()&& dictSize <8;i++) { 
 			if(sortMap1[i].second == *setIt) {
 					sortMap.push_back(pair<string, int>(sortMap1[i].first,dictSize));
@@ -106,27 +100,15 @@ void compSetup() {
 
 	}
 	
-	
-	 /* write to file */
-	//ofstream outFile("cout.txt");
-	// streambuf *coutbuffer = cout.rdbuf();
-	// cout.rdbuf(outFile.rdbuf());
 	 origFile.close();
 	
 }
 
-//void bitMistake(string orgiStr, string compareStr, int &position1, int &position2, int &choice, string &bitmask) {
 string bitMistake(string compareStr, string orgiStr ) {
 	string temp = compareStr;
 	vector<pair<char, int > > mistakes; //for store mistake index position
 	string tempMask = "";
-	//int totalMis = 0;
-	//TODO: if 2 mistakes within 4 bits, using bitmask 010
-	//TODO: if 2 mistakes is consecutive, using 011
-	//TODO: if 1 mistakes, using 010
-	//TODO: if more than 4 mistakes, 111
-//	cout << "original string is : " << orgiStr << endl;
-//	cout << "compare string is : " << compareStr << endl;
+
 	for(int i = 0; i < 32; i++) {
 		if(temp[i] != orgiStr[i]) {
 
@@ -231,11 +213,6 @@ string bitMistake(string compareStr, string orgiStr ) {
 			temp[position2] = '0';
 
 		choice = 4;
-		// cout << "temp str length " << temp.length() << endl;
-// 		cout << "orgi str length " << orgiStr.length() << endl;
-// 		if(temp.compare(orgiStr) == 0)
-// 			cout << "temp and orgiStr are the same! " << endl;
-//
 	}
 	
 	return temp;	
@@ -243,28 +220,13 @@ string bitMistake(string compareStr, string orgiStr ) {
 
 void compression() {
 	
-	//cout << "start compressing: " << endl;
-	//vector<string>::iterator vecIt;
 	stringstream ss;
-	// string pre;
-	// string format;
-	// //string templine = "";
-	// int position1 = -100;
-	// int position2 = -100;
-	// string biPos1 = "";
-	// string biPos2 = "";
-	// //string lastFormat = "";
-	// int RLEindex = -1;
-	// string lastPre = "";
-	// string bitMask = "";
 	string tempStr;
 	map<string,int >::iterator it2;
 	
 	for(int i = 0 ; i < fileKey.size(); i++) {
 		it = dictionary.find(fileKey.at(i));
-		//vecIt = find(dictionary.begin()->first, dictionary.end()->first, fileKey.at(i));
-		//cout << "lastLine: " << lastLine << endl;
-		//cout << "new line: " << fileKey.at(i) << endl;
+
 		if(lastLine.compare(fileKey.at(i)) == 0) {	//RLE
 			RLEindex++;
 			choice = 0;
@@ -385,18 +347,18 @@ void compression() {
 	}
 	
 	char eachChar;
-	int i=0;
+	int i = 0;
 	while(ss>>eachChar) {
-		cout<<eachChar;
-		if(i%32==31) {
-			cout<<endl;
+		cout << eachChar;
+		if( i%32 ==31) {
+			cout << endl;
 		}
 		i++;
 	}
 	while(true) {
 		cout<<'1';
-		if(i%32==31) {
-			cout<<endl;
+		if(i%32 == 31) {
+			cout << endl;
 			break;
 		}
 		i++;
@@ -412,12 +374,163 @@ void compression() {
 }
 
 void  depreSetup() {
+	ifstream origFile("compressed.txt");
+	//stringstream origSS;
+	stringstream ss;
+	
+	while(getline(origFile,line)){
+		line.erase(line.find_last_not_of("\n\r") + 1);
+		ss << line;
+	}
+	/* find dictionary */
+	size_t position = line.find("xxxx");
+	compBody = line.substr(0,position);
+	dictComb = line.substr(position + 4);
+	
+	origFile.close();
 	
 }
 
 void depression() {
 	
-	cout << "depressing " << endl;
+	string pre = "";
+	int preIndex;
+	string pos1Index;
+	string pos2Index;
+	string dicIndex;
+	string origStr, RLE, mask;
+	string temp = "";
+	stringstream ss;
+	/* get line to vector */
+	while(true) {
+		int rest = strlen(compBody.c_str());
+		if(rest < 3)
+			break;
+		else {
+			pre = compBody.substr(0,3);
+			compBody = compBody.substr(3,strlen(compBody.c_str()));	
+			if(pre.compare("000") != 0) {   /* RLE */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 2) break;
+				else {
+					RLE = compBody.substr(0,2);
+					compBody = compBody.substr(2,strlen(compBody.c_str()));
+					temp = pre + RLE;
+					cout << "temp is " << temp << endl;
+					ss<<temp;
+					
+					//ss>>temp;
+					fileKey.push_back(temp);
+				}
+			}
+			else if(pre.compare("001") != 0) { /* bitmask */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 3) break;
+				else {
+					pos1Index = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					int maskInd = strlen(compBody.c_str());
+					if(maskInd < 4) break;
+					else {
+						mask =  compBody.substr(0,4);
+						compBody = compBody.substr(3,strlen(compBody.c_str()));
+						int dicInd = strlen(compBody.c_str());
+						if(dicInd < 3) break;
+						else {
+							dicIndex = compBody.substr(0,3);
+							compBody = compBody.substr(3,strlen(compBody.c_str()));
+							temp = pre + pos1Index + mask + dicIndex;
+							cout << "temp is " << temp << endl;
+							ss<<temp;
+							fileKey.push_back(temp);
+						}
+					}
+				}
+			}
+			else if(pre.compare("010") != 0) { /* 1 bit mistake */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 8) break;
+				else {
+					pos1Index = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					dicIndex = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					
+					temp = pre + pos1Index + dicIndex;
+					cout << "temp is " << temp << endl;
+					ss<<temp;
+					fileKey.push_back(temp);
+					
+				}
+			}
+			else if(pre.compare("011") != 0) { /* 2bit consecutive */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 8) break;
+				else {
+					pos1Index = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					dicIndex = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					
+					temp = pre + pos1Index + dicIndex;
+					cout << "temp is " << temp << endl;
+					ss<<temp;
+					fileKey.push_back(temp);
+					
+				}
+			}
+			else if(pre.compare("100") != 0) { /* 2bit anywhere */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 13) break;
+				else {
+					pos1Index = compBody.substr(0,5);
+					compBody = compBody.substr(5,strlen(compBody.c_str()));
+					pos2Index = compBody.substr(0,5);
+					compBody = compBody.substr(5,strlen(compBody.c_str()));
+					dicIndex = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					
+					temp = pre + pos1Index + pos1Index +  dicIndex;
+					cout << "temp is " << temp << endl;
+					ss<<temp;
+					fileKey.push_back(temp);
+					
+				}
+			}
+			else if(pre.compare("101") != 0) { /* dictionary */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 3) break;
+				else {
+					dicIndex = compBody.substr(0,3);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					temp = pre + dicIndex;
+					cout << "temp is " << temp << endl;
+					ss<<temp;
+					
+					//ss>>temp;
+					fileKey.push_back(temp);
+				}
+			}
+			else if(pre.compare("111") != 0) { /* original */
+				preIndex = strlen(compBody.c_str());
+				if(preIndex < 32) break;
+				else {
+					origStr = compBody.substr(0,32);
+					compBody = compBody.substr(3,strlen(compBody.c_str()));
+					temp = pre + origStr;
+					cout << "temp is " << origStr << endl;
+					ss<<temp;
+					
+					//ss>>temp;
+					fileKey.push_back(temp);
+				}
+			}
+			else {}
+		}
+		
+	}
+	
+	/* generate output */
 }
 
 int main(int argc, char* argv[]) { 
@@ -439,8 +552,15 @@ int main(int argc, char* argv[]) {
  			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else if(atoi(argv[1]) == 2) {
+			ofstream outFile("dout.txt");
+			streambuf *coutbuf = cout.rdbuf();
+			cout.rdbuf(outFile.rdbuf());
+			
 			depreSetup();
 			depression();
+			
+			outFile.close();
+ 			cout.rdbuf(coutbuf); //reset to standard output again
 		}
 		else {
 			cout << "invild argement "<< atoi(argv[1]) <<endl;
